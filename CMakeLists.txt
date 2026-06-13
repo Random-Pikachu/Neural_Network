@@ -4,14 +4,12 @@ project(neural_network)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-#file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS
-#    src/*.cpp
-#)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+add_executable(cpp_neural
+    src/main.cpp
+    src/helpers/tensor.cpp
+)
 
-#list(FILTER SOURCES EXCLUDE REGEX ".*main\\.cpp$")
-
-#add_library(neural_core ${SOURCES})
-
-add_executable(cpp_neural src/main.cpp)
-
-#target_link_libraries(cpp_neural PRIVATE neural_core)
+target_include_directories(cpp_neural PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/headers
+)

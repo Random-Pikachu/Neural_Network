@@ -1,5 +1,6 @@
 #include "../headers/tensor.h"
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
 #include <vector>
 
@@ -182,3 +183,85 @@ Tensor Tensor::matmul(const Tensor& a, const Tensor& b) {
     return result;
     
 }
+
+// shape shifter functions
+Tensor Tensor::Transpose() const{
+    // swap the last to dim of shape and strides;
+    if (_shape.size() < 2) {
+        throw std::runtime_error("Cannot transpose a tensor with less than 2 dimensions.");
+    }
+    Tensor result = *this;
+    int last = result._shape.size()-1;
+    int second_last = result._shape.size()-2;
+    std::swap(result._shape[last], result._shape[second_last]);
+    std::swap(result._strides[last], result._strides[second_last]);
+    return result;
+}
+
+Tensor Tensor::reshape(const std::vector<int>& newShape) const {
+    int totalElements = 1;
+    for (int i: newShape) totalElements*=i;
+
+    if (totalElements != this->size()){
+        throw std::runtime_error("Reshape failed: Total number of elements must remain the same.");
+    }
+
+    Tensor result = *this;
+    result._shape = newShape;
+    result._strides.resize(newShape.size());
+    int multiplier = 1;
+    for (int i = newShape.size()-1; i>=0; i--){
+        result._strides[i] = multiplier;
+        multiplier*=newShape[i];
+    }
+    
+    return result;
+}
+
+ // scalar math
+ Tensor Tensor::add(float val) const{
+     Tensor result = *this;
+     for (float& v: result._data){
+         v += val;
+     }
+     return result;
+ }
+ 
+Tensor Tensor::mul(float val) const{
+     Tensor result = *this;
+     for (float& v: result._data){
+         v *= val;
+     }
+     return result;
+ }
+ 
+ Tensor Tensor::exp() const{
+     Tensor result = *this;
+     for (float& v: result._data){
+         v = std::exp(v);
+     }
+     return result;
+ }
+ 
+ Tensor Tensor::log() const{
+     Tensor result = *this;
+     for (float& v: result._data){
+         v = std::log(v);
+     }
+     return result;
+ }
+
+ // Reductions
+Tensor Tensor::sum() const{
+    Tensor result({1});
+    float total = 0.0f;
+    for (float v:this->_data){
+        total+=v;
+    }
+    result._data[0] = total;
+    return result;
+}
+
+Tensor Tensor::sum(int dim) const{
+    
+} 

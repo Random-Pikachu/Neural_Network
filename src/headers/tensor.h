@@ -30,6 +30,20 @@
 
          Tensor add(const Tensor& other) const;
          static Tensor matmul(const Tensor& a, const Tensor& b);
+
+         // shape shifter functions
+         Tensor Transpose() const;
+         Tensor reshape(const std::vector<int>& newShape) const;
+
+         // scalar math
+         Tensor add(float val) const;
+         Tensor mul(float val) const;
+         Tensor exp() const;
+         Tensor log() const;
+
+         // Reductions
+         Tensor sum() const;    // Sums everything into a 1x1 Tensor
+         Tensor sum(int dim) const; //sum along a specific axis
  };
 
  #endif

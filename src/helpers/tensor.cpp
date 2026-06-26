@@ -64,6 +64,21 @@ int Tensor::get_flat_index(const std::vector<int> &coordinates) const {
     return flatIdx;
 }
 
+
+std::vector<int> Tensor::get_coordinates(int flat_index) const{
+    if (flat_index >= _data.size() || flat_index<0) {
+        throw std::runtime_error("Index out of range!");
+    }
+    std::vector<int> coord(_shape.size());
+    int tmp = flat_index;
+    for (int i = _shape.size()-1; i>=0; i--){
+        coord[i] = tmp%_shape[i];
+        tmp/=_shape[i];
+    }
+
+    return coord;
+}
+
 float Tensor::at(const std::vector<int> &coordinates) const {
     return _data[get_flat_index(coordinates)];
 }
@@ -76,12 +91,12 @@ std::vector<int> Tensor::get_batch_shape() const {
     if (_shape.size() < 2) {
         return std::vector<int>(); // Return an empty vector
     }
-    
+
     return std::vector<int>(_shape.begin(), _shape.end() - 2);
 }
 
 Tensor Tensor::add(const Tensor& other) const {
-    if (this->_shape != other._shape) {        
+    if (this->_shape != other._shape) {
         throw std::runtime_error("Shapes must match to perform addition");
     }
 
@@ -96,7 +111,7 @@ Tensor Tensor::matmul(const Tensor& a, const Tensor& b) {
     if (a._shape.size() < 2 || b._shape.size() < 2) {
         throw std::runtime_error("This matmul implementation requires at least 2D tensors");
     }
-    
+
     if (a._shape[a._shape.size()-1] != b._shape[b._shape.size() -2]){
         throw std::runtime_error("Inner dimensions don't match for matmul");
     }
@@ -109,7 +124,7 @@ Tensor Tensor::matmul(const Tensor& a, const Tensor& b) {
     std::vector<int> padded_sb(target_rank,1);
     int offset_a = target_rank-l1;
     for (int i = 0; i<l1; i++) padded_sa[offset_a+i] = a._shape[i];
-    
+
     int offset_b = target_rank-l2;
     for (int i = 0; i<l2; i++) padded_sb[offset_b+i] = b._shape[i];
 
@@ -120,7 +135,7 @@ Tensor Tensor::matmul(const Tensor& a, const Tensor& b) {
     int batch_dims = target_rank - 2;
     int diff_a = batch_dims - (l1 - 2);
     int diff_b = batch_dims - (l2 - 2);
-    
+
     // S2. shape of the resultant matrix
     std::vector<int> shape_result(target_rank, 1);
     for (int i = 0; i<padded_sa.size()-2; i++){
@@ -132,7 +147,7 @@ Tensor Tensor::matmul(const Tensor& a, const Tensor& b) {
     shape_result[target_rank-2] = M;
     shape_result[target_rank-1] = N;
 
-    Tensor result(shape_result); 
+    Tensor result(shape_result);
     // S3. calculating strides for the batches (till size() -2 )
     std::vector<int> batch_strides_a(target_rank - 2, 0);
     std::vector<int> batch_strides_b(target_rank - 2, 0);
@@ -144,12 +159,12 @@ Tensor Tensor::matmul(const Tensor& a, const Tensor& b) {
         if (padded_sa[i] == 1) batch_strides_a[i] = 0;
         if (padded_sb[i] == 1) batch_strides_b[i] = 0;
     }
-    
+
     // S4. Count total batch iterations (product of result batch dims)
     int total_batches = 1;
     for (int i = 0; i<batch_dims; i++) total_batches*=shape_result[i];
 
-    // S5. Iterate over each batch 
+    // S5. Iterate over each batch
     for (int batch = 0; batch<total_batches; batch++){
 
         std::vector<int> batch_coord(batch_dims);
@@ -166,12 +181,12 @@ Tensor Tensor::matmul(const Tensor& a, const Tensor& b) {
             base_a+=batch_coord[i]*batch_strides_a[i];
             base_b+=batch_coord[i]*batch_strides_b[i];
         }
-        
+
         int base_r = batch*M*N;
         // standard 2d multiplication
         for (int m = 0; m<M; m++){
             for (int n = 0; n<N; n++){
-                float sum = 0.0f;   
+                float sum = 0.0f;
                 for(int k = 0; k<K; k++){
                     sum+=a._data[base_a+m*K+k] * b._data[base_b+k*N+n];
                 }
@@ -181,7 +196,7 @@ Tensor Tensor::matmul(const Tensor& a, const Tensor& b) {
     }
 
     return result;
-    
+
 }
 
 // shape shifter functions
@@ -214,7 +229,7 @@ Tensor Tensor::reshape(const std::vector<int>& newShape) const {
         result._strides[i] = multiplier;
         multiplier*=newShape[i];
     }
-    
+
     return result;
 }
 
@@ -226,7 +241,7 @@ Tensor Tensor::reshape(const std::vector<int>& newShape) const {
      }
      return result;
  }
- 
+
 Tensor Tensor::mul(float val) const{
      Tensor result = *this;
      for (float& v: result._data){
@@ -234,7 +249,7 @@ Tensor Tensor::mul(float val) const{
      }
      return result;
  }
- 
+
  Tensor Tensor::exp() const{
      Tensor result = *this;
      for (float& v: result._data){
@@ -242,7 +257,7 @@ Tensor Tensor::mul(float val) const{
      }
      return result;
  }
- 
+
  Tensor Tensor::log() const{
      Tensor result = *this;
      for (float& v: result._data){
@@ -262,6 +277,20 @@ Tensor Tensor::sum() const{
     return result;
 }
 
+
 Tensor Tensor::sum(int dim) const{
-    
-} 
+    if (dim>=_shape.size() || dim<0){
+        throw std::runtime_error("Dimension cant be greater than shape size");
+    }
+    std::vector<int> target_shape = this->_shape;
+    target_shape[dim] = 1;
+    Tensor result(target_shape);
+    for (int i = 0; i<_data.size(); i++){
+        std::vector<int> coord = get_coordinates(i);
+        coord[dim] = 0;
+        int result_flat_idx = result.get_flat_index(coord);
+        result._data[result_flat_idx] += _data[i];
+    }
+
+    return result;
+}

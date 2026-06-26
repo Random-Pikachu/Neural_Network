@@ -16,9 +16,10 @@
          void load_data(const std::vector<float> &input_data);
 
          int get_flat_index(const std::vector<int> &coordinates) const;
+         std::vector<int> get_coordinates(int flat_index) const;
          std::vector<int> get_batch_shape() const;
          Tensor stride(const Tensor& a);
-         
+
          // accessors
          const std::vector<int>& shape() const;
          const std::vector<float>& data() const;
